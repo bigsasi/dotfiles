@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+mkdir -p "$HOME/.local/bin"
+
+# Install Starship if not present
+if ! command -v starship >/dev/null 2>&1; then
+    echo "Installing Starship prompt..."
+    curl -sS https://starship.rs/install.sh | sh -s -- -b "$HOME/.local/bin" -y
+fi
+
+# Install ble.sh (Bash Line Editor) if not present
+if [ ! -f "$HOME/.local/share/blesh/ble.sh" ]; then
+    echo "Installing ble.sh for syntax highlighting and autosuggestions..."
+    mkdir -p /tmp/blesh "$HOME/.local/share/blesh"
+    curl -fsSL https://github.com/akinomyoga/ble.sh/releases/download/nightly/ble-nightly.tar.xz | tar -xJf - -C /tmp/blesh
+    cp -rf /tmp/blesh/ble-nightly/* "$HOME/.local/share/blesh/"
+    rm -rf /tmp/blesh
+fi

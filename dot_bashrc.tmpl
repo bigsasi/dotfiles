@@ -1,0 +1,85 @@
+# ~/.bashrc: executed by bash(1) for interactive non-login shells.
+
+# 1. Initialize ble.sh (syntax highlighting & autosuggestions) early
+if [[ $- == *i* ]] && [ -f "$HOME/.local/share/blesh/ble.sh" ]; then
+    source "$HOME/.local/share/blesh/ble.sh" --noattach
+fi
+
+# 2. Non-interactive shells return early
+case $- in
+    *i*) ;;
+      *) return;;
+esac
+
+# 3. History Settings
+HISTCONTROL=ignoreboth
+shopt -s histappend
+HISTSIZE=50000
+HISTFILESIZE=50000
+HISTTIMEFORMAT="%F %T "
+
+# 4. Shell Options
+shopt -s checkwinsize
+shopt -s globstar 2>/dev/null
+
+# 5. Colored Man Pages
+export LESS_TERMCAP_mb=$'\e[1;31m'      # begin bold
+export LESS_TERMCAP_md=$'\e[1;36m'      # begin blink
+export LESS_TERMCAP_me=$'\e[0m'         # reset bold/blink
+export LESS_TERMCAP_so=$'\e[01;44;33m'  # begin reverse video
+export LESS_TERMCAP_se=$'\e[0m'         # reset reverse video
+export LESS_TERMCAP_us=$'\e[1;32m'      # begin underline
+export LESS_TERMCAP_ue=$'\e[0m'         # reset underline
+export GROFF_NO_SGR=1                   # compatibility for groff
+
+# 6. PATH & Environment
+export PATH="$HOME/.local/bin:$HOME/bin:$PATH"
+
+{{ if eq .chezmoi.os "darwin" -}}
+# macOS (Darwin) specific environment
+[ -d "/opt/homebrew/bin" ] && eval "$(/opt/homebrew/bin/brew shellenv)"
+[ -d "/usr/local/bin" ] && export PATH="/usr/local/bin:$PATH"
+[ -d "/opt/local/bin" ] && export PATH="/opt/local/bin:/opt/local/sbin:$PATH"
+
+# iTerm2 integration if installed
+if [ -e "${HOME}/.iterm2_shell_integration.bash" ]; then
+    source "${HOME}/.iterm2_shell_integration.bash"
+fi
+{{- else -}}
+# Linux specific environment
+if [ -x /usr/bin/dircolors ]; then
+    test -r ~/.dircolors && eval "$(dircolors -b ~/.dircolors)" || eval "$(dircolors -b)"
+    alias ls='ls --color=auto'
+fi
+{{- end }}
+
+# 7. Programmable Bash Completion
+if ! shopt -oq posix; then
+  if [ -f /usr/share/bash-completion/bash_completion ]; then
+    . /usr/share/bash-completion/bash_completion
+  elif [ -f /etc/bash_completion ]; then
+    . /etc/bash_completion
+  elif [ -f /usr/local/etc/bash_completion ]; then
+    . /usr/local/etc/bash_completion
+  fi
+fi
+
+# 8. User Exports
+if [ -f "$HOME/.exports" ]; then
+    . "$HOME/.exports"
+fi
+
+# 9. User Aliases
+if [ -f "$HOME/.bash_aliases" ]; then
+    . "$HOME/.bash_aliases"
+fi
+
+# 10. Starship Prompt
+if command -v starship >/dev/null 2>&1; then
+    eval "$(starship init bash)"
+fi
+
+# 11. Attach ble.sh at the very end
+if [[ ${BLE_VERSION-} ]]; then
+    ble-attach
+fi

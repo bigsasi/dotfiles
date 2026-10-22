@@ -1,0 +1,230 @@
+
+filetype off                   " required!
+
+set clipboard=unnamed
+
+"Leader key
+let mapleader = ','
+
+" Vundle setup
+set nocompatible               " be iMproved
+set rtp+=~/.vim/bundle/Vundle.vim
+call vundle#rc()
+
+" Tab setup
+set smartindent
+set tabstop=2
+set shiftwidth=2
+set expandtab
+
+autocmd BufWritePre,FileWritePre * execute "silent '[,']retab!"
+
+" Session setup
+let g:session_dir = '~/.vim/sessions'
+exec 'nnoremap <Leader>ss :mks! ' . g:session_dir . '/'
+exec 'nnoremap <Leader>sr :so ' . g:session_dir . '/'
+
+
+" Autowrap files longer than 80 chars
+set wrap
+set textwidth=120
+
+" Improve searching command
+set incsearch hlsearch
+
+" When a bracket is inserted, briefly jump to a matching one
+set showmatch
+
+" Show line, column number, and relative position within a file in the status line
+set ruler
+
+" Statusbar configuration
+function! GitBranch()
+    return system("git rev-parse --abbrev-ref HEAD 2>/dev/null | tr -d '\n'")
+  endfunction
+
+function! StatuslineGit()
+  let l:branchname = GitBranch()
+  return strlen(l:branchname) > 0?'  '.l:branchname.' ':''
+endfunction
+
+set statusline=
+set statusline+=%#PmenuSel#
+set statusline+=%{StatuslineGit()}
+set statusline+=%#LineNr#
+set statusline+=\ %f
+set statusline+=%m
+set statusline+=%=
+set statusline+=%#CursorColumn#
+set statusline+=\ %y
+set statusline+=\ %{&fileencoding?&fileencoding:&encoding}
+set statusline+=\[%{&fileformat}\]
+set statusline+=\ %p%%
+set statusline+=\ %l:%c
+set statusline+=\ 
+
+
+" Show statusbar all the time
+set laststatus=2                      
+
+
+" Enable syntax highlighting
+syntax on
+
+" Enable line numbers
+set number
+
+" Command line autocomplete menu
+set wildchar=<Tab> wildmenu wildmode=full
+
+" Easier buffer switching 
+set wildcharm=<C-Z>
+nnoremap <F10> :b <C-Z>
+
+" let Vundle manage Vundle
+Plugin 'VundleVim/Vundle.vim'
+
+" My Bundles here:
+"
+"Plugin 'jimenezrick/vimerl.git'
+Plugin 'fatih/vim-go.git'
+Plugin 'c.vim'
+Plugin 'ctrlpvim/ctrlp.vim'
+Plugin 'altercation/vim-colors-solarized.git'
+Plugin 'msanders/snipmate.vim.git'
+Plugin 'tpope/vim-surround.git'
+Plugin 'scrooloose/nerdtree.git'
+Plugin 'elzr/vim-json.git'
+Plugin 'airblade/vim-gitgutter.git'
+Plugin 'tpope/vim-fugitive.git'
+Plugin 'xolox/vim-misc.git'
+Plugin 'xolox/vim-notes.git'
+Plugin 'pangloss/vim-javascript'
+Plugin 'wookiehangover/jshint.vim'
+Plugin 'vim-scripts/todo-txt.vim.git'
+Plugin 'bash-support.vim'
+Plugin 'vim-scripts/indentpython.vim'
+Plugin 'scrooloose/syntastic'
+Plugin 'davidhalter/jedi-vim'
+Plugin 'rust-lang/rust.vim'
+Plugin 'arcticicestudio/nord-vim'
+
+colorscheme nord
+
+"if has('gui_running')
+"  colorscheme mrrubinos
+"else
+"  set background=dark
+"  colorscheme zenburn
+"endif
+
+
+
+" Disable cursor movements (become better at Vim)
+map <up> <nop>
+map <down> <nop>
+map <left> <nop>
+map <right> <nop>
+imap <up> <nop>
+imap <left> <nop>
+imap <right> <nop>
+
+" Easy split navigation 
+nnoremap <C-J> <C-W><C-J>
+nnoremap <C-K> <C-W><C-K>
+nnoremap <C-L> <C-W><C-L>
+nnoremap <C-H> <C-W><C-H>
+
+" More natural split
+set splitbelow
+set splitright
+
+" Enable autocomplete brackets, parentheses, cruly brackets, ...
+":inoremap ( ()<Esc>i
+":inoremap [ []<Esc>i
+":inoremap { {}<Esc>i
+":inoremap < <><Esc>i
+":inoremap " ""<Esc>i
+":inoremap ' ''<Esc>i
+":inoremap ` ``<Esc>i
+
+" CtrlP setup
+let g:ctrlp_map = '<c-p>'
+let g:ctrlp_cmd = 'CtrlP'
+let g:ctrlp_working_path_mode = 'ra'
+
+set wildignore+=*/tmp/*,*.so,*.swp,*.zip,.git,.svn,.hg     " MacOSX/Linux
+"set wildignore+=*\\tmp\\*,*.swp,*.zip,*.exe  " Windows
+
+"let g:ctrlp_user_command = 'find %s -type f'        " MacOSX/Linux
+"let g:ctrlp_user_command = 'dir %s /-n /b /s /a-d'  " Windows
+
+"VimNotes setup
+let g:notes_directories = ['~/Dropbox/vimnotes']
+let g:notes_suffix = '.md'
+
+" Erlang setup
+filetype plugin indent on
+let g:erlangCompleteFile="~/.vim/bundle/vim-erlang-omnicomplete/autoload/erlang_complete.erl"
+set cot-=preview
+let g:erlang_completion_preview_help = 0
+"let g:erlangCheckFile="~/.vim/bundle/vimerl/compiler/erlang_check.erl"
+"set foldenable
+"let g:erlangFold = 1 " Don't fold block of code by default
+let g:erlangHighlightBif = 1
+let g:erlangHighLightOperators=1
+
+"Go setup
+au BufRead,BufNewFile *.go set filetype=go
+au FileType go nmap <leader>r <Plug>(go-run)
+au FileType go nmap <leader>b <Plug>(go-build)
+au FileType go nmap <leader>t <Plug>(go-test)
+au FileType go nmap <leader>c <Plug>(go-coverage)
+au FileType go nmap <leader>ds <Plug>(go-def-split)
+au FileType go nmap <leader>dv <Plug>(go-def-vertical)
+au FileType go nmap <leader>dt <Plug>(go-def-tab)
+au FileType go nmap <leader>gd <Plug>(go-doc)
+au FileType go nmap <leader>gv <Plug>(go-doc-vertical)
+
+"Python setup
+au BufRead,BufNewFile *.py set filetype=python
+au FileType python set tabstop=4 
+au FileType python set softtabstop=4
+au FileType python set shiftwidth=4
+au FileType python set textwidth=80
+au FileType python set expandtab
+au FileType python set autoindent
+au FileType python set fileformat=unix
+
+"Scala setup
+au BufRead,BufNewFile *.scala set filetype=scala
+
+"Txt2Tags setup
+au BufRead,BufNewFile *.ndoc set filetype=txt2tags
+
+"JSON setup
+au! BufRead,BufNewFile *.json set filetype=json 
+
+"C++ setup
+au BufNewFile,BufRead,BufEnter *.cpp,*.hpp set omnifunc=omni#cpp#complete#Main
+
+"format XML
+command Xml setfiletype xml | %!xmllint\ --format\ --recover\ -\ 2>/dev/null
+
+"format JSON
+command Json setfiletype json | %!python -m json.tool
+"augroup json_autocmd 
+"  autocmd! 
+"  autocmd FileType json set autoindent 
+"  autocmd FileType json set formatoptions=tcq2l 
+"  autocmd FileType json set textwidth=78 shiftwidth=2 
+"  autocmd FileType json set softtabstop=2 tabstop=8 
+"  autocmd FileType json set expandtab 
+"  autocmd FileType json set foldmethod=syntax 
+"augroup END
+
+" Minibuf setup
+let g:miniBufExplMapCTabSwitchBufs = 1 
+
+" Typescript
+au BufRead,BufNewFile *.ts set filetype=typescript
