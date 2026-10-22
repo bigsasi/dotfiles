@@ -6,10 +6,56 @@ set clipboard=unnamed
 "Leader key
 let mapleader = ','
 
-" Vundle setup
+" Vundle setup & auto-installation
+let s:vundle_dir = expand('~/.vim/bundle/Vundle.vim')
+let s:need_install = 0
+if !isdirectory(s:vundle_dir)
+  silent execute '!git clone --depth=1 https://github.com/VundleVim/Vundle.vim.git ' . shellescape(s:vundle_dir)
+  let s:need_install = 1
+endif
+
 set nocompatible               " be iMproved
-set rtp+=~/.vim/bundle/Vundle.vim
-call vundle#rc()
+filetype off                   " required!
+
+if isdirectory(s:vundle_dir)
+  let &rtp = &rtp . ',' . s:vundle_dir
+  call vundle#begin()
+
+  " let Vundle manage Vundle
+  Plugin 'VundleVim/Vundle.vim'
+
+  " My Bundles here:
+  Plugin 'fatih/vim-go.git'
+  Plugin 'c.vim'
+  Plugin 'ctrlpvim/ctrlp.vim'
+  Plugin 'altercation/vim-colors-solarized.git'
+  Plugin 'msanders/snipmate.vim.git'
+  Plugin 'tpope/vim-surround.git'
+  Plugin 'scrooloose/nerdtree.git'
+  Plugin 'elzr/vim-json.git'
+  Plugin 'airblade/vim-gitgutter.git'
+  Plugin 'tpope/vim-fugitive.git'
+  Plugin 'xolox/vim-misc.git'
+  Plugin 'xolox/vim-notes.git'
+  Plugin 'pangloss/vim-javascript'
+  Plugin 'wookiehangover/jshint.vim'
+  Plugin 'vim-scripts/todo-txt.vim.git'
+  Plugin 'bash-support.vim'
+  Plugin 'vim-scripts/indentpython.vim'
+  Plugin 'scrooloose/syntastic'
+  Plugin 'davidhalter/jedi-vim'
+  Plugin 'rust-lang/rust.vim'
+  Plugin 'arcticicestudio/nord-vim'
+
+  call vundle#end()
+  filetype plugin indent on
+
+  if s:need_install
+    echom "Vundle installed. Run :PluginInstall to install all plugins."
+  endif
+endif
+
+silent! colorscheme nord
 
 " Tab setup
 set smartindent
@@ -81,35 +127,6 @@ set wildchar=<Tab> wildmenu wildmode=full
 set wildcharm=<C-Z>
 nnoremap <F10> :b <C-Z>
 
-" let Vundle manage Vundle
-Plugin 'VundleVim/Vundle.vim'
-
-" My Bundles here:
-"
-"Plugin 'jimenezrick/vimerl.git'
-Plugin 'fatih/vim-go.git'
-Plugin 'c.vim'
-Plugin 'ctrlpvim/ctrlp.vim'
-Plugin 'altercation/vim-colors-solarized.git'
-Plugin 'msanders/snipmate.vim.git'
-Plugin 'tpope/vim-surround.git'
-Plugin 'scrooloose/nerdtree.git'
-Plugin 'elzr/vim-json.git'
-Plugin 'airblade/vim-gitgutter.git'
-Plugin 'tpope/vim-fugitive.git'
-Plugin 'xolox/vim-misc.git'
-Plugin 'xolox/vim-notes.git'
-Plugin 'pangloss/vim-javascript'
-Plugin 'wookiehangover/jshint.vim'
-Plugin 'vim-scripts/todo-txt.vim.git'
-Plugin 'bash-support.vim'
-Plugin 'vim-scripts/indentpython.vim'
-Plugin 'scrooloose/syntastic'
-Plugin 'davidhalter/jedi-vim'
-Plugin 'rust-lang/rust.vim'
-Plugin 'arcticicestudio/nord-vim'
-
-colorscheme nord
 
 "if has('gui_running')
 "  colorscheme mrrubinos
