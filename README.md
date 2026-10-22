@@ -20,7 +20,7 @@ Managed with [chezmoi](https://www.chezmoi.io/).
 
 2. Initialize and apply dotfiles:
    ```bash
-   chezmoi init --apply <your-github-username>/dotfiles
+   chezmoi init --apply bigsasi/dotfiles
    ```
    Or if cloned locally into `~/dotfiles`:
    ```bash
