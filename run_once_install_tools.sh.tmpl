@@ -3,13 +3,13 @@ set -euo pipefail
 
 mkdir -p "$HOME/.local/bin"
 
-# Install Starship if not present
+# 1. Install Starship prompt if not present
 if ! command -v starship >/dev/null 2>&1; then
     echo "Installing Starship prompt..."
     curl -sS https://starship.rs/install.sh | sh -s -- -b "$HOME/.local/bin" -y
 fi
 
-# Install ble.sh (Bash Line Editor) if not present
+# 2. Install ble.sh (Bash Line Editor) if not present
 if [ ! -f "$HOME/.local/share/blesh/ble.sh" ]; then
     echo "Installing ble.sh for syntax highlighting and autosuggestions..."
     mkdir -p /tmp/blesh "$HOME/.local/share/blesh"
@@ -17,3 +17,27 @@ if [ ! -f "$HOME/.local/share/blesh/ble.sh" ]; then
     cp -rf /tmp/blesh/ble-nightly/* "$HOME/.local/share/blesh/"
     rm -rf /tmp/blesh
 fi
+
+# 3. Install JetBrains Mono Nerd Font if not present
+{{ if eq .chezmoi.os "darwin" -}}
+FONT_DIR="$HOME/Library/Fonts/NerdFonts"
+if [ ! -d "$FONT_DIR" ]; then
+    echo "Downloading and installing JetBrains Mono Nerd Font for macOS..."
+    mkdir -p "$FONT_DIR"
+    curl -fLo /tmp/JetBrainsMono.tar.xz https://github.com/ryanoasis/nerd-fonts/releases/latest/download/JetBrainsMono.tar.xz
+    tar -xf /tmp/JetBrainsMono.tar.xz -C "$FONT_DIR"
+    rm -f /tmp/JetBrainsMono.tar.xz
+fi
+{{- else -}}
+FONT_DIR="$HOME/.local/share/fonts/NerdFonts"
+if [ ! -d "$FONT_DIR" ]; then
+    echo "Downloading and installing JetBrains Mono Nerd Font for Linux..."
+    mkdir -p "$FONT_DIR"
+    curl -fLo /tmp/JetBrainsMono.tar.xz https://github.com/ryanoasis/nerd-fonts/releases/latest/download/JetBrainsMono.tar.xz
+    tar -xf /tmp/JetBrainsMono.tar.xz -C "$FONT_DIR"
+    rm -f /tmp/JetBrainsMono.tar.xz
+    if command -v fc-cache >/dev/null 2>&1; then
+        fc-cache -f "$FONT_DIR"
+    fi
+fi
+{{- end }}
