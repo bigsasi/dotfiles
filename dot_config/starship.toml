@@ -1,39 +1,154 @@
-# Starship Prompt Configuration
+# Starship Prompt Configuration (Nord Palette & Dev-Aware)
 "$schema" = 'https://starship.rs/config-schema.json'
 
+palette = "nord"
 add_newline = true
 command_timeout = 1000
 
 format = """
+$username\
+$hostname\
 $directory\
 $git_branch\
+$git_state\
 $git_status\
+$golang\
+$python\
+$rust\
+$nodejs\
+$c\
+$erlang\
+$docker_context\
 $fill\
+$status\
+$jobs\
 $cmd_duration\
+$time\
 $line_break\
 $character"""
+
+[palettes.nord]
+polar_night_1 = "#2E3440"
+polar_night_2 = "#3B4252"
+polar_night_3 = "#434C5E"
+polar_night_4 = "#4C566A"
+snow_storm_1 = "#D8DEE9"
+snow_storm_2 = "#E5E9F0"
+snow_storm_3 = "#ECEFF4"
+frost_1 = "#8FBCBB"
+frost_2 = "#88C0D0"
+frost_3 = "#81A1C1"
+frost_4 = "#5E81AC"
+aurora_red = "#BF616A"
+aurora_orange = "#D08770"
+aurora_yellow = "#EBCB8B"
+aurora_green = "#A3BE8C"
+aurora_purple = "#B48EAD"
 
 [fill]
 symbol = " "
 
 [character]
-success_symbol = "[❯](bold green)"
-error_symbol = "[❯](bold red)"
+success_symbol = "[❯](bold aurora_green)"
+error_symbol = "[❯](bold aurora_red)"
+vimcmd_symbol = "[❮](bold frost_2)"
+
+[username]
+style_user = "bold frost_3"
+style_root = "bold aurora_red"
+format = "[$user]($style)"
+show_always = false
+
+[hostname]
+ssh_only = true
+ssh_symbol = "🌐 "
+style = "bold frost_4"
+format = "[@$hostname]($style) in "
 
 [directory]
-style = "bold cyan"
+style = "bold frost_2"
 truncation_length = 4
 truncate_to_repo = true
+read_only = " 󰌾"
+read_only_style = "aurora_red"
 
 [git_branch]
-style = "bold purple"
-symbol = " "
+style = "bold aurora_purple"
+symbol = "🌱 "
+format = "on [$symbol$branch(:$remote_branch)]($style) "
+
+[git_state]
+style = "bold aurora_yellow"
+format = '\([$state( $progress_current/$progress_total)]($style)\) '
 
 [git_status]
-style = "bold red"
+style = "bold aurora_red"
 format = '([\[$all_status$ahead_behind\]]($style) )'
+conflicted = "=${count}"
+ahead = "⇡${count}"
+behind = "⇣${count}"
+diverged = "⇕⇡${ahead_count}⇣${behind_count}"
+untracked = "?${count}"
+stashed = "$${count}"
+modified = "!${count}"
+staged = "+${count}"
+renamed = "»${count}"
+deleted = "✘${count}"
+
+[golang]
+symbol = " "
+style = "bold frost_2"
+format = "via [$symbol($version )]($style)"
+
+[python]
+symbol = " "
+style = "bold aurora_yellow"
+format = 'via [${symbol}${pyenv_prefix}(${version} )(\($virtualenv\) )]($style)'
+
+[rust]
+symbol = " "
+style = "bold aurora_orange"
+format = "via [$symbol($version )]($style)"
+
+[nodejs]
+symbol = " "
+style = "bold aurora_green"
+format = "via [$symbol($version )]($style)"
+
+[c]
+symbol = " "
+style = "bold frost_3"
+format = "via [$symbol($version(-$name) )]($style)"
+
+[erlang]
+symbol = " "
+style = "bold aurora_red"
+format = "via [$symbol($version )]($style)"
+
+[docker_context]
+symbol = " "
+style = "bold frost_3"
+format = "via [$symbol$context]($style) "
+only_with_files = true
+
+[jobs]
+symbol = "✦ "
+style = "bold aurora_yellow"
+format = "[$symbol$number]($style) "
+
+[status]
+disabled = false
+symbol = "✘ "
+style = "bold aurora_red"
+format = "[$symbol$status]($style) "
 
 [cmd_duration]
 min_time = 2000
-style = "bold yellow"
-format = "[$duration]($style)"
+style = "bold aurora_yellow"
+format = "[󱎫 $duration]($style) "
+
+[time]
+disabled = false
+time_format = "%H:%M"
+style = "polar_night_4"
+format = "[$time]($style)"

@@ -1,38 +1,48 @@
 # ~/.bashrc: executed by bash(1) for interactive non-login shells.
 
-# 1. Initialize ble.sh (syntax highlighting & autosuggestions) early
-if [[ $- == *i* ]] && [ -f "$HOME/.local/share/blesh/ble.sh" ]; then
-    source "$HOME/.local/share/blesh/ble.sh" --noattach
-fi
-
-# 2. Non-interactive shells return early
+# 1. Non-interactive shells return early
 case $- in
     *i*) ;;
       *) return;;
 esac
 
-# 3. History Settings
-HISTCONTROL=ignoreboth
+# 2. History Settings (large, deduplicated, synced across sessions)
+HISTCONTROL=ignoreboth:erasedups
 shopt -s histappend
-HISTSIZE=50000
-HISTFILESIZE=50000
+shopt -s cmdhist
+HISTSIZE=100000
+HISTFILESIZE=200000
 HISTTIMEFORMAT="%F %T "
+HISTIGNORE="ls:ll:la:l:cd:pwd:exit:clear:history"
 
-# 4. Shell Options
+# 3. Shell Options (ergonomic directory navigation & globbing)
 shopt -s checkwinsize
 shopt -s globstar 2>/dev/null
+shopt -s autocd 2>/dev/null
+shopt -s cdspell 2>/dev/null
+shopt -s dirspell 2>/dev/null
+shopt -s nocaseglob 2>/dev/null
 
-# 5. Colored Man Pages
-export LESS_TERMCAP_mb=$'\e[1;31m'      # begin bold
-export LESS_TERMCAP_md=$'\e[1;36m'      # begin blink
-export LESS_TERMCAP_me=$'\e[0m'         # reset bold/blink
-export LESS_TERMCAP_so=$'\e[01;44;33m'  # begin reverse video
-export LESS_TERMCAP_se=$'\e[0m'         # reset reverse video
-export LESS_TERMCAP_us=$'\e[1;32m'      # begin underline
-export LESS_TERMCAP_ue=$'\e[0m'         # reset underline
-export GROFF_NO_SGR=1                   # compatibility for groff
+# 4. Default Editor & Colored Man Pages
+export EDITOR="vim"
+export VISUAL="vim"
 
-# 6. PATH & Environment
+if command -v bat >/dev/null 2>&1; then
+    export BAT_THEME="Nord"
+    export MANPAGER="sh -c 'col -bx | bat -l man -p'"
+    export MANROFFOPT="-c"
+else
+    export LESS_TERMCAP_mb=$'\e[1;31m'      # begin bold
+    export LESS_TERMCAP_md=$'\e[1;36m'      # begin blink
+    export LESS_TERMCAP_me=$'\e[0m'         # reset bold/blink
+    export LESS_TERMCAP_so=$'\e[01;44;33m'  # begin reverse video
+    export LESS_TERMCAP_se=$'\e[0m'         # reset reverse video
+    export LESS_TERMCAP_us=$'\e[1;32m'      # begin underline
+    export LESS_TERMCAP_ue=$'\e[0m'         # reset underline
+    export GROFF_NO_SGR=1                   # compatibility for groff
+fi
+
+# 5. PATH & Platform Environment
 export PATH="$HOME/.local/bin:$HOME/bin:$PATH"
 
 {{ if eq .chezmoi.os "darwin" -}}
@@ -53,7 +63,7 @@ if [ -x /usr/bin/dircolors ]; then
 fi
 {{- end }}
 
-# 7. Programmable Bash Completion
+# 6. Programmable Bash Completion
 if ! shopt -oq posix; then
   if [ -f /usr/share/bash-completion/bash_completion ]; then
     . /usr/share/bash-completion/bash_completion
@@ -64,22 +74,46 @@ if ! shopt -oq posix; then
   fi
 fi
 
-# 8. User Exports
+# 7. User Exports
 if [ -f "$HOME/.exports" ]; then
     . "$HOME/.exports"
 fi
 
-# 9. User Aliases
+# 8. User Aliases & Helper Functions
 if [ -f "$HOME/.bash_aliases" ]; then
     . "$HOME/.bash_aliases"
+fi
+
+# 9. Modern CLI Integrations (fzf & zoxide)
+if command -v fzf >/dev/null 2>&1; then
+    # Nord color palette & clean layout for fzf
+    export FZF_DEFAULT_OPTS="--height 45% --layout=reverse --border=rounded --info=inline \
+        --color=fg:#e5e9f0,bg:#2e3440,hl:#81a1c1 \
+        --color=fg+:#eceff4,bg+:#3b4252,hl+:#88c0d0 \
+        --color=info:#eacb8a,prompt:#bf6069,pointer:#b48dac \
+        --color=marker:#a3be8b,spinner:#b48dac,header:#a3be8b"
+
+    if command -v fd >/dev/null 2>&1; then
+        export FZF_DEFAULT_COMMAND="fd --type f --hidden --follow --exclude .git"
+        export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
+        export FZF_ALT_C_COMMAND="fd --type d --hidden --follow --exclude .git"
+    fi
+
+    if command -v bat >/dev/null 2>&1; then
+        export FZF_CTRL_T_OPTS="--preview 'bat --color=always --style=numbers --line-range=:200 {} 2>/dev/null || ls -la {}'"
+    fi
+    if command -v eza >/dev/null 2>&1; then
+        export FZF_ALT_C_OPTS="--preview 'eza --tree --level=2 --color=always --icons=auto {} | head -200'"
+    fi
+
+    eval "$(fzf --bash)"
+fi
+
+if command -v zoxide >/dev/null 2>&1; then
+    eval "$(zoxide init bash)"
 fi
 
 # 10. Starship Prompt
 if command -v starship >/dev/null 2>&1; then
     eval "$(starship init bash)"
-fi
-
-# 11. Attach ble.sh at the very end
-if [[ ${BLE_VERSION-} ]]; then
-    ble-attach
 fi

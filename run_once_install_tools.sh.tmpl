@@ -2,6 +2,10 @@
 set -euo pipefail
 
 mkdir -p "$HOME/.local/bin"
+export PATH="$HOME/.local/bin:$PATH"
+
+OS="$(uname -s | tr '[:upper:]' '[:lower:]')"
+ARCH="$(uname -m)"
 
 # 1. Install Starship prompt if not present
 if ! command -v starship >/dev/null 2>&1; then
@@ -9,16 +13,111 @@ if ! command -v starship >/dev/null 2>&1; then
     curl -sS https://starship.rs/install.sh | sh -s -- -b "$HOME/.local/bin" -y
 fi
 
-# 2. Install ble.sh (Bash Line Editor) if not present
-if [ ! -f "$HOME/.local/share/blesh/ble.sh" ]; then
-    echo "Installing ble.sh for syntax highlighting and autosuggestions..."
-    mkdir -p /tmp/blesh "$HOME/.local/share/blesh"
-    curl -fsSL https://github.com/akinomyoga/ble.sh/releases/download/nightly/ble-nightly.tar.xz | tar -xJf - -C /tmp/blesh
-    cp -rf /tmp/blesh/ble-nightly/* "$HOME/.local/share/blesh/"
-    rm -rf /tmp/blesh
+# 2. Install fzf (Fuzzy Finder) if not present
+if ! command -v fzf >/dev/null 2>&1; then
+    echo "Installing fzf..."
+    if [ "$OS" = "darwin" ] && command -v brew >/dev/null 2>&1; then
+        brew install fzf
+    else
+        FZF_ARCH="amd64"
+        [ "$ARCH" = "aarch64" ] || [ "$ARCH" = "arm64" ] && FZF_ARCH="arm64"
+        FZF_URL=$(curl -fsSL https://api.github.com/repos/junegunn/fzf/releases/latest \
+            | grep -Eo "https://[^\"]+fzf-[0-9.]+-${OS}_${FZF_ARCH}\\.tar\\.gz" | head -n 1)
+        if [ -n "${FZF_URL:-}" ]; then
+            curl -fsSL "$FZF_URL" | tar -xzf - -C "$HOME/.local/bin" fzf
+            chmod +x "$HOME/.local/bin/fzf"
+        fi
+    fi
 fi
 
-# 3. Install JetBrains Mono Nerd Font if not present
+# 3. Install zoxide (Smart directory jumper) if not present
+if ! command -v zoxide >/dev/null 2>&1; then
+    echo "Installing zoxide..."
+    curl -sSfL https://raw.githubusercontent.com/ajeetdsouza/zoxide/main/install.sh | sh
+fi
+
+# 4. Install eza (Modern ls replacement with icons & git) if not present
+if ! command -v eza >/dev/null 2>&1; then
+    echo "Installing eza..."
+    if [ "$OS" = "darwin" ] && command -v brew >/dev/null 2>&1; then
+        brew install eza
+    elif [ "$OS" = "linux" ]; then
+        EZA_ARCH="x86_64"
+        [ "$ARCH" = "aarch64" ] || [ "$ARCH" = "arm64" ] && EZA_ARCH="aarch64"
+        EZA_URL="https://github.com/eza-community/eza/releases/latest/download/eza_${EZA_ARCH}-unknown-linux-gnu.tar.gz"
+        curl -fsSL "$EZA_URL" | tar -xzf - -C "$HOME/.local/bin"
+        chmod +x "$HOME/.local/bin/eza"
+    fi
+fi
+
+# 5. Install bat (Syntax-highlighted cat) if not present
+if ! command -v bat >/dev/null 2>&1 && ! command -v batcat >/dev/null 2>&1; then
+    echo "Installing bat..."
+    if [ "$OS" = "darwin" ] && command -v brew >/dev/null 2>&1; then
+        brew install bat
+    else
+        BAT_ARCH="x86_64"
+        [ "$ARCH" = "aarch64" ] || [ "$ARCH" = "arm64" ] && BAT_ARCH="aarch64"
+        BAT_TARGET="${BAT_ARCH}-unknown-linux-gnu"
+        [ "$OS" = "darwin" ] && BAT_TARGET="${BAT_ARCH}-apple-darwin"
+        BAT_URL=$(curl -fsSL https://api.github.com/repos/sharkdp/bat/releases/latest \
+            | grep -Eo "https://[^\"]+bat-v[0-9.]+-${BAT_TARGET}\\.tar\\.gz" | head -n 1)
+        if [ -n "${BAT_URL:-}" ]; then
+            TMP_BAT=$(mktemp -d)
+            curl -fsSL "$BAT_URL" | tar -xzf - -C "$TMP_BAT" --strip-components=1
+            mv "$TMP_BAT/bat" "$HOME/.local/bin/bat"
+            chmod +x "$HOME/.local/bin/bat"
+            rm -rf "$TMP_BAT"
+        fi
+    fi
+fi
+
+# 6. Install fd (Fast file finder for fzf) if not present
+if ! command -v fd >/dev/null 2>&1 && ! command -v fdfind >/dev/null 2>&1; then
+    echo "Installing fd..."
+    if [ "$OS" = "darwin" ] && command -v brew >/dev/null 2>&1; then
+        brew install fd
+    else
+        FD_ARCH="x86_64"
+        [ "$ARCH" = "aarch64" ] || [ "$ARCH" = "arm64" ] && FD_ARCH="aarch64"
+        FD_TARGET="${FD_ARCH}-unknown-linux-gnu"
+        [ "$OS" = "darwin" ] && FD_TARGET="${FD_ARCH}-apple-darwin"
+        FD_URL=$(curl -fsSL https://api.github.com/repos/sharkdp/fd/releases/latest \
+            | grep -Eo "https://[^\"]+fd-v[0-9.]+-${FD_TARGET}\\.tar\\.gz" | head -n 1)
+        if [ -n "${FD_URL:-}" ]; then
+            TMP_FD=$(mktemp -d)
+            curl -fsSL "$FD_URL" | tar -xzf - -C "$TMP_FD" --strip-components=1
+            mv "$TMP_FD/fd" "$HOME/.local/bin/fd"
+            chmod +x "$HOME/.local/bin/fd"
+            rm -rf "$TMP_FD"
+        fi
+    fi
+fi
+
+# 7. Install ripgrep (Fast grep) if not present
+if ! command -v rg >/dev/null 2>&1; then
+    echo "Installing ripgrep..."
+    if [ "$OS" = "darwin" ] && command -v brew >/dev/null 2>&1; then
+        brew install ripgrep
+    else
+        RG_ARCH="x86_64"
+        [ "$ARCH" = "aarch64" ] || [ "$ARCH" = "arm64" ] && RG_ARCH="aarch64"
+        RG_TARGET="${RG_ARCH}-unknown-linux-musl"
+        [ "$ARCH" = "aarch64" ] && RG_TARGET="aarch64-unknown-linux-gnu"
+        [ "$OS" = "darwin" ] && RG_TARGET="${RG_ARCH}-apple-darwin"
+        RG_URL=$(curl -fsSL https://api.github.com/repos/BurntSushi/ripgrep/releases/latest \
+            | grep -Eo "https://[^\"]+ripgrep-[0-9.]+-${RG_TARGET}\\.tar\\.gz" | head -n 1)
+        if [ -n "${RG_URL:-}" ]; then
+            TMP_RG=$(mktemp -d)
+            curl -fsSL "$RG_URL" | tar -xzf - -C "$TMP_RG" --strip-components=1
+            mv "$TMP_RG/rg" "$HOME/.local/bin/rg"
+            chmod +x "$HOME/.local/bin/rg"
+            rm -rf "$TMP_RG"
+        fi
+    fi
+fi
+
+# 8. Install JetBrains Mono Nerd Font if not present
 {{ if eq .chezmoi.os "darwin" -}}
 FONT_DIR="$HOME/Library/Fonts/NerdFonts"
 if [ ! -d "$FONT_DIR" ]; then
@@ -42,7 +141,7 @@ if [ ! -d "$FONT_DIR" ]; then
 fi
 {{- end }}
 
-# 4. Install Vundle and Vim plugins if not present
+# 9. Install Vundle and Vim plugins if not present
 if [ ! -d "$HOME/.vim/bundle/Vundle.vim" ]; then
     echo "Installing Vundle and Vim plugins..."
     mkdir -p "$HOME/.vim/bundle"
