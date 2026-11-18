@@ -6,7 +6,9 @@ case $- in
       *) return;;
 esac
 
-# 2. History Settings (large, deduplicated, synced across sessions)
+# 2. History Settings (large, deduplicated, checkpointed every 5m & on exit)
+SHELL_SESSION_HISTORY=0
+HISTFILE="$HOME/.bash_history"
 HISTCONTROL=ignoreboth:erasedups
 shopt -s histappend
 shopt -s cmdhist
@@ -14,6 +16,27 @@ HISTSIZE=100000
 HISTFILESIZE=200000
 HISTTIMEFORMAT="%F %T "
 HISTIGNORE="ls:ll:la:l:cd:pwd:exit:clear:history"
+
+__hist_last_sync=${__hist_last_sync:-$SECONDS}
+__sync_history() {
+    local status=$?
+    if (( SECONDS - __hist_last_sync >= 300 )); then
+        history -a
+        __hist_last_sync=$SECONDS
+    fi
+    return "$status"
+}
+
+if [[ "$(declare -p PROMPT_COMMAND 2>/dev/null)" == "declare -a"* ]]; then
+    if [[ "${PROMPT_COMMAND[*]}" != *__sync_history* ]]; then
+        PROMPT_COMMAND=(__sync_history "${PROMPT_COMMAND[@]}")
+    fi
+elif [[ "${PROMPT_COMMAND:-}" != *__sync_history* ]]; then
+    PROMPT_COMMAND="__sync_history${PROMPT_COMMAND:+;$PROMPT_COMMAND}"
+fi
+
+trap 'history -a' EXIT
+trap 'history -a; trap - HUP; kill -HUP $$' HUP
 
 # 3. Shell Options (ergonomic directory navigation & globbing)
 shopt -s checkwinsize
