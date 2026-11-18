@@ -5,7 +5,7 @@ Managed with [chezmoi](https://www.chezmoi.io/).
 ## Features
 
 - **Shell**: Fast, responsive Bash (Linux & macOS) with zero keystroke lag
-- **Readline (`.inputrc`)**: Case-insensitive completion, single-Tab colored menu, and history prefix search (`Up`/`Down`)
+- **History Autosuggestions (`.blerc` & `.inputrc`)**: Instant Fish-style inline ghost-text from command history (`→` / `End` to accept, `Alt+→` for next word) via lightweight [`ble.sh`](https://github.com/akinomyoga/ble.sh), plus `Up`/`Down` prefix search
 - **Prompt**: Compact single-line [Starship](https://starship.rs/) styled with the **Nord** palette—path & git state on the left, `user@host`, exit status & slow-command duration on the right (SSH-safe, no Nerd Font required)
 - **Modern CLI Suite** (auto-bootstrapped to `~/.local/bin`):
   - [`fzf`](https://github.com/junegunn/fzf): Fuzzy search for command history (`Ctrl+R`), files with syntax preview (`Ctrl+T`), and directories (`Alt+C`)
@@ -34,6 +34,7 @@ Managed with [chezmoi](https://www.chezmoi.io/).
 
 ## Useful Keybindings & Commands
 
+- `→` / `End` (or `Alt+→`) - Accept inline history ghost-text suggestion (or next word)
 - `Ctrl+R` - Fuzzy search command history (`fzf`)
 - `Ctrl+T` - Fuzzy find files in current directory with `bat` syntax preview
 - `Alt+C` - Fuzzy jump into subdirectories with `eza` tree preview

@@ -1,0 +1,28 @@
+# ~/.blerc: Lightweight ble.sh configuration (instant history ghost-text, zero lag)
+
+# 1. History-only inline ghost-text (disable background syntax/tab auto-completion & popup menus)
+bleopt complete_auto_complete=1
+bleopt complete_auto_history=1
+bleopt complete_auto_complete_opts=syntax-disabled
+bleopt complete_auto_delay=0
+bleopt complete_auto_menu=
+
+# 2. Disable per-keystroke syntax/filename/variable highlighting for instant typing
+bleopt highlight_syntax=
+bleopt highlight_filename=
+bleopt highlight_variable=
+
+# 3. Clean terminal output (no "[ble: exit 1]", "[ble: elapsed ...]", "[ble: EOF]", or bells)
+bleopt exec_errexit_mark=
+bleopt exec_elapsed_mark=
+bleopt prompt_eol_mark=''
+bleopt edit_bell=
+
+# 4. Subtle Nord-muted ghost-text style (no bright highlight block)
+ble-face auto_complete='fg=#616e88'
+
+# 5. fzf integration (Ctrl+R history, Ctrl+T files, Alt+C directories)
+if command -v fzf >/dev/null 2>&1; then
+    ble-import -d integration/fzf-completion
+    ble-import -d integration/fzf-key-bindings
+fi

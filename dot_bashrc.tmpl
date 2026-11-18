@@ -6,7 +6,24 @@ case $- in
       *) return;;
 esac
 
-# 2. History Settings (large, deduplicated, checkpointed every 5m & on exit)
+# 2. PATH & Platform Environment (set early so ble.sh & tools find ~/.local/bin)
+export PATH="$HOME/.local/bin:$HOME/bin:$PATH"
+[ -d "$HOME/.npm-global/bin" ] && export PATH="$HOME/.npm-global/bin:$PATH"
+
+{{ if eq .chezmoi.os "darwin" -}}
+# macOS (Darwin) specific environment
+[ -d "/opt/homebrew/bin" ] && eval "$(/opt/homebrew/bin/brew shellenv)"
+[ -d "/usr/local/bin" ] && export PATH="/usr/local/bin:$PATH"
+[ -d "/opt/local/bin" ] && export PATH="/opt/local/bin:/opt/local/sbin:$PATH"
+{{- end }}
+
+# 3. Initialize ble.sh (lightweight inline history autosuggestions via ~/.blerc)
+if (( BASH_VERSINFO[0] >= 4 )) && [ -f "$HOME/.local/share/blesh/ble.sh" ]; then
+    [ -z "${USER:-}" ] && export USER="$(id -un)"
+    source -- "$HOME/.local/share/blesh/ble.sh" --noattach
+fi
+
+# 4. History Settings (large, deduplicated, checkpointed every 5m & on exit)
 SHELL_SESSION_HISTORY=0
 HISTFILE="$HOME/.bash_history"
 HISTCONTROL=ignoreboth:erasedups
@@ -38,7 +55,7 @@ fi
 trap 'history -a' EXIT
 trap 'history -a; trap - HUP; kill -HUP $$' HUP
 
-# 3. Shell Options (ergonomic directory navigation & globbing)
+# 5. Shell Options (ergonomic directory navigation & globbing)
 shopt -s checkwinsize
 shopt -s globstar 2>/dev/null
 shopt -s autocd 2>/dev/null
@@ -46,7 +63,7 @@ shopt -s cdspell 2>/dev/null
 shopt -s dirspell 2>/dev/null
 shopt -s nocaseglob 2>/dev/null
 
-# 4. Default Editor & Colored Man Pages
+# 6. Default Editor, Colored Man Pages & OS Colors
 export EDITOR="vim"
 export VISUAL="vim"
 
@@ -65,28 +82,18 @@ else
     export GROFF_NO_SGR=1                   # compatibility for groff
 fi
 
-# 5. PATH & Platform Environment
-export PATH="$HOME/.local/bin:$HOME/bin:$PATH"
-
 {{ if eq .chezmoi.os "darwin" -}}
-# macOS (Darwin) specific environment
-[ -d "/opt/homebrew/bin" ] && eval "$(/opt/homebrew/bin/brew shellenv)"
-[ -d "/usr/local/bin" ] && export PATH="/usr/local/bin:$PATH"
-[ -d "/opt/local/bin" ] && export PATH="/opt/local/bin:/opt/local/sbin:$PATH"
-
-# iTerm2 integration if installed
-if [ -e "${HOME}/.iterm2_shell_integration.bash" ]; then
+if [[ ! ${BLE_VERSION-} ]] && [ -e "${HOME}/.iterm2_shell_integration.bash" ]; then
     source "${HOME}/.iterm2_shell_integration.bash"
 fi
 {{- else -}}
-# Linux specific environment
 if [ -x /usr/bin/dircolors ]; then
     test -r ~/.dircolors && eval "$(dircolors -b ~/.dircolors)" || eval "$(dircolors -b)"
     alias ls='ls --color=auto'
 fi
 {{- end }}
 
-# 6. Programmable Bash Completion
+# 7. Programmable Bash Completion
 if ! shopt -oq posix; then
   if [ -f /usr/share/bash-completion/bash_completion ]; then
     . /usr/share/bash-completion/bash_completion
@@ -97,17 +104,17 @@ if ! shopt -oq posix; then
   fi
 fi
 
-# 7. User Exports
+# 8. User Exports
 if [ -f "$HOME/.exports" ]; then
     . "$HOME/.exports"
 fi
 
-# 8. User Aliases & Helper Functions
+# 9. User Aliases & Helper Functions
 if [ -f "$HOME/.bash_aliases" ]; then
     . "$HOME/.bash_aliases"
 fi
 
-# 9. Modern CLI Integrations (fzf & zoxide)
+# 10. Modern CLI Integrations (fzf & zoxide)
 if command -v fzf >/dev/null 2>&1; then
     # Nord color palette & clean layout for fzf
     export FZF_DEFAULT_OPTS="--height 45% --layout=reverse --border=rounded --info=inline \
@@ -129,66 +136,76 @@ if command -v fzf >/dev/null 2>&1; then
         export FZF_ALT_C_OPTS="--preview 'eza --tree --level=2 --color=always {} | head -200'"
     fi
 
-    eval "$(fzf --bash)"
+    # When ble.sh is active, fzf bindings are loaded via ~/.blerc integration modules
+    if [[ ! ${BLE_VERSION-} ]]; then
+        eval "$(fzf --bash)" 2>/dev/null || true
+    fi
 fi
 
 if command -v zoxide >/dev/null 2>&1; then
     eval "$(zoxide init bash)"
 fi
 
-# 10. Starship Prompt (with single-line right-aligned host)
+# 11. Starship Prompt (ble.sh handles right_format natively via prompt_rps1; fallback for plain Readline)
 if command -v starship >/dev/null 2>&1; then
     eval "$(starship init bash)"
 
-    __strip_ansi_prompt() {
-        local s="${1//[$'\001\002']/}" esc=$'\e\[[0-9;]*[a-zA-Z]'
-        while [[ $s =~ $esc ]]; do
-            s="${s/"${BASH_REMATCH[0]}"/}"
-        done
-        REPLY="$s"
-    }
-
-    __starship_rprompt() {
-        local status=$?
-        local -a args=(
-            --terminal-width="${COLUMNS:-80}"
-            --status="${STARSHIP_CMD_STATUS:-$status}"
-            --pipestatus="${STARSHIP_PIPE_STATUS[*]:-0}"
-            --jobs="${STARSHIP_NUM_JOBS:-0}"
-            --shlvl="${SHLVL:-1}"
-        )
-        if [[ -n "${STARSHIP_DURATION:-}" ]]; then
-            args+=(--cmd-duration="$STARSHIP_DURATION")
-            STARSHIP_DURATION=""
-        fi
-
-        local rprompt
-        rprompt="$(starship prompt --right "${args[@]}")"
-        rprompt="${rprompt//[$'\001\002']/}"
-        if [[ -n "$rprompt" ]]; then
-            __strip_ansi_prompt "$rprompt"
-            local rplain="$REPLY" prefix=""
-            while [[ "$PS1" == $'\n'* ]]; do
-                prefix+=$'\n'
-                PS1="${PS1#$'\n'}"
+    if [[ ! ${BLE_VERSION-} ]]; then
+        __strip_ansi_prompt() {
+            local s="${1//[$'\001\002']/}" esc=$'\e\[[0-9;]*[a-zA-Z]'
+            while [[ $s =~ $esc ]]; do
+                s="${s/"${BASH_REMATCH[0]}"/}"
             done
-            __strip_ansi_prompt "$PS1"
-            local lplain="$REPLY"
-            local col=$(( ${COLUMNS:-80} - ${#rplain} + 1 ))
-            if (( ${#rplain} > 0 && col > ${#lplain} + 4 )); then
-                PS1="${prefix}"$'\001\e['"${col}G${rprompt}"$'\e[0m\r\002'"${PS1}"
-            else
-                PS1="${prefix}${PS1}"
-            fi
-        fi
-        return "$status"
-    }
+            REPLY="$s"
+        }
 
-    if [[ "$(declare -p PROMPT_COMMAND 2>/dev/null)" == "declare -a"* ]]; then
-        if [[ "${PROMPT_COMMAND[*]}" != *__starship_rprompt* ]]; then
-            PROMPT_COMMAND+=(__starship_rprompt)
+        __starship_rprompt() {
+            local status=$?
+            local -a args=(
+                --terminal-width="${COLUMNS:-80}"
+                --status="${STARSHIP_CMD_STATUS:-$status}"
+                --pipestatus="${STARSHIP_PIPE_STATUS[*]:-0}"
+                --jobs="${STARSHIP_NUM_JOBS:-0}"
+                --shlvl="${SHLVL:-1}"
+            )
+            if [[ -n "${STARSHIP_DURATION:-}" ]]; then
+                args+=(--cmd-duration="$STARSHIP_DURATION")
+                STARSHIP_DURATION=""
+            fi
+
+            local rprompt
+            rprompt="$(starship prompt --right "${args[@]}")"
+            rprompt="${rprompt//[$'\001\002']/}"
+            if [[ -n "$rprompt" ]]; then
+                __strip_ansi_prompt "$rprompt"
+                local rplain="$REPLY" prefix=""
+                while [[ "$PS1" == $'\n'* ]]; do
+                    prefix+=$'\n'
+                    PS1="${PS1#$'\n'}"
+                done
+                __strip_ansi_prompt "$PS1"
+                local lplain="$REPLY"
+                local col=$(( ${COLUMNS:-80} - ${#rplain} + 1 ))
+                if (( ${#rplain} > 0 && col > ${#lplain} + 4 )); then
+                    PS1="${prefix}"$'\001\e['"${col}G${rprompt}"$'\e[0m\r\002'"${PS1}"
+                else
+                    PS1="${prefix}${PS1}"
+                fi
+            fi
+            return "$status"
+        }
+
+        if [[ "$(declare -p PROMPT_COMMAND 2>/dev/null)" == "declare -a"* ]]; then
+            if [[ "${PROMPT_COMMAND[*]}" != *__starship_rprompt* ]]; then
+                PROMPT_COMMAND+=(__starship_rprompt)
+            fi
+        elif [[ "${PROMPT_COMMAND:-}" != *__starship_rprompt* ]]; then
+            PROMPT_COMMAND="${PROMPT_COMMAND:+$PROMPT_COMMAND$'\n'}__starship_rprompt"
         fi
-    elif [[ "${PROMPT_COMMAND:-}" != *__starship_rprompt* ]]; then
-        PROMPT_COMMAND="${PROMPT_COMMAND:+$PROMPT_COMMAND$'\n'}__starship_rprompt"
     fi
+fi
+
+# 12. Attach ble.sh at the very end
+if [[ ${BLE_VERSION-} ]]; then
+    ble-attach
 fi

@@ -13,6 +13,16 @@ if ! command -v starship >/dev/null 2>&1; then
     curl -sS https://starship.rs/install.sh | sh -s -- -b "$HOME/.local/bin" -y
 fi
 
+# 1b. Install ble.sh (Lightweight inline history autosuggestions) if not present
+if [ ! -f "$HOME/.local/share/blesh/ble.sh" ]; then
+    echo "Installing ble.sh..."
+    TMP_BLE=$(mktemp -d)
+    curl -fsSL https://github.com/akinomyoga/ble.sh/releases/download/nightly/ble-nightly.tar.xz \
+        | tar -xJf - -C "$TMP_BLE"
+    bash "$TMP_BLE/ble-nightly/ble.sh" --install "$HOME/.local/share"
+    rm -rf "$TMP_BLE"
+fi
+
 # 2. Install fzf (Fuzzy Finder) if not present
 if ! command -v fzf >/dev/null 2>&1; then
     echo "Installing fzf..."
