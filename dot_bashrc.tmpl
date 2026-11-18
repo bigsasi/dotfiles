@@ -126,7 +126,7 @@ if command -v fzf >/dev/null 2>&1; then
         export FZF_CTRL_T_OPTS="--preview 'bat --color=always --style=numbers --line-range=:200 {} 2>/dev/null || ls -la {}'"
     fi
     if command -v eza >/dev/null 2>&1; then
-        export FZF_ALT_C_OPTS="--preview 'eza --tree --level=2 --color=always --icons=auto {} | head -200'"
+        export FZF_ALT_C_OPTS="--preview 'eza --tree --level=2 --color=always {} | head -200'"
     fi
 
     eval "$(fzf --bash)"
@@ -136,7 +136,59 @@ if command -v zoxide >/dev/null 2>&1; then
     eval "$(zoxide init bash)"
 fi
 
-# 10. Starship Prompt
+# 10. Starship Prompt (with single-line right-aligned host)
 if command -v starship >/dev/null 2>&1; then
     eval "$(starship init bash)"
+
+    __strip_ansi_prompt() {
+        local s="${1//[$'\001\002']/}" esc=$'\e\[[0-9;]*[a-zA-Z]'
+        while [[ $s =~ $esc ]]; do
+            s="${s/"${BASH_REMATCH[0]}"/}"
+        done
+        REPLY="$s"
+    }
+
+    __starship_rprompt() {
+        local status=$?
+        local -a args=(
+            --terminal-width="${COLUMNS:-80}"
+            --status="${STARSHIP_CMD_STATUS:-$status}"
+            --pipestatus="${STARSHIP_PIPE_STATUS[*]:-0}"
+            --jobs="${STARSHIP_NUM_JOBS:-0}"
+            --shlvl="${SHLVL:-1}"
+        )
+        if [[ -n "${STARSHIP_DURATION:-}" ]]; then
+            args+=(--cmd-duration="$STARSHIP_DURATION")
+            STARSHIP_DURATION=""
+        fi
+
+        local rprompt
+        rprompt="$(starship prompt --right "${args[@]}")"
+        rprompt="${rprompt//[$'\001\002']/}"
+        if [[ -n "$rprompt" ]]; then
+            __strip_ansi_prompt "$rprompt"
+            local rplain="$REPLY" prefix=""
+            while [[ "$PS1" == $'\n'* ]]; do
+                prefix+=$'\n'
+                PS1="${PS1#$'\n'}"
+            done
+            __strip_ansi_prompt "$PS1"
+            local lplain="$REPLY"
+            local col=$(( ${COLUMNS:-80} - ${#rplain} + 1 ))
+            if (( ${#rplain} > 0 && col > ${#lplain} + 4 )); then
+                PS1="${prefix}"$'\001\e['"${col}G${rprompt}"$'\e[0m\r\002'"${PS1}"
+            else
+                PS1="${prefix}${PS1}"
+            fi
+        fi
+        return "$status"
+    }
+
+    if [[ "$(declare -p PROMPT_COMMAND 2>/dev/null)" == "declare -a"* ]]; then
+        if [[ "${PROMPT_COMMAND[*]}" != *__starship_rprompt* ]]; then
+            PROMPT_COMMAND+=(__starship_rprompt)
+        fi
+    elif [[ "${PROMPT_COMMAND:-}" != *__starship_rprompt* ]]; then
+        PROMPT_COMMAND="${PROMPT_COMMAND:+$PROMPT_COMMAND$'\n'}__starship_rprompt"
+    fi
 fi

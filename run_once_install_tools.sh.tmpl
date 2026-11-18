@@ -36,7 +36,7 @@ if ! command -v zoxide >/dev/null 2>&1; then
     curl -sSfL https://raw.githubusercontent.com/ajeetdsouza/zoxide/main/install.sh | sh
 fi
 
-# 4. Install eza (Modern ls replacement with icons & git) if not present
+# 4. Install eza (Modern ls replacement) if not present
 if ! command -v eza >/dev/null 2>&1; then
     echo "Installing eza..."
     if [ "$OS" = "darwin" ] && command -v brew >/dev/null 2>&1; then
@@ -117,31 +117,7 @@ if ! command -v rg >/dev/null 2>&1; then
     fi
 fi
 
-# 8. Install JetBrains Mono Nerd Font if not present
-{{ if eq .chezmoi.os "darwin" -}}
-FONT_DIR="$HOME/Library/Fonts/NerdFonts"
-if [ ! -d "$FONT_DIR" ]; then
-    echo "Downloading and installing JetBrains Mono Nerd Font for macOS..."
-    mkdir -p "$FONT_DIR"
-    curl -fLo /tmp/JetBrainsMono.tar.xz https://github.com/ryanoasis/nerd-fonts/releases/latest/download/JetBrainsMono.tar.xz
-    tar -xf /tmp/JetBrainsMono.tar.xz -C "$FONT_DIR"
-    rm -f /tmp/JetBrainsMono.tar.xz
-fi
-{{- else -}}
-FONT_DIR="$HOME/.local/share/fonts/NerdFonts"
-if [ ! -d "$FONT_DIR" ]; then
-    echo "Downloading and installing JetBrains Mono Nerd Font for Linux..."
-    mkdir -p "$FONT_DIR"
-    curl -fLo /tmp/JetBrainsMono.tar.xz https://github.com/ryanoasis/nerd-fonts/releases/latest/download/JetBrainsMono.tar.xz
-    tar -xf /tmp/JetBrainsMono.tar.xz -C "$FONT_DIR"
-    rm -f /tmp/JetBrainsMono.tar.xz
-    if command -v fc-cache >/dev/null 2>&1; then
-        fc-cache -f "$FONT_DIR"
-    fi
-fi
-{{- end }}
-
-# 9. Install Vundle and Vim plugins if not present
+# 8. Install Vundle and Vim plugins if not present
 if [ ! -d "$HOME/.vim/bundle/Vundle.vim" ]; then
     echo "Installing Vundle and Vim plugins..."
     mkdir -p "$HOME/.vim/bundle"
