@@ -47,6 +47,7 @@ Managed with [chezmoi](https://www.chezmoi.io/).
    ```powershell
    chezmoi init --apply bigsasi
    ```
+   *(The bootstrapper sets `RemoteSigned` for `CurrentUser` so PowerShell 5.1 can load `$PROFILE`; if needed manually, run `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`.)*
    Restart your terminal once finished so updated `PATH` entries and `PSReadLine`/`PSFzf` modules load.
 
 ## Useful Keybindings & Commands

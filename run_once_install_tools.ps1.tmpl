@@ -4,6 +4,16 @@ $ErrorActionPreference = 'Stop'
 # Enable TLS 1.2 for Windows PowerShell 5.1 GitHub API / PSGallery downloads
 [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
 
+# Windows PowerShell 5.1 defaults to Restricted; RemoteSigned (CurrentUser, no admin needed) lets $PROFILE load
+$curPolicy = Get-ExecutionPolicy -Scope CurrentUser
+if ($curPolicy -in @('Undefined', 'Restricted', 'AllSigned')) {
+    try {
+        Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned -Force
+    } catch {
+        Write-Warning "Could not set ExecutionPolicy (CurrentUser -> RemoteSigned): $_"
+    }
+}
+
 $LocalBin = Join-Path $HOME '.local\bin'
 New-Item -ItemType Directory -Force -Path $LocalBin | Out-Null
 
