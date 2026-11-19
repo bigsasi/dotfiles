@@ -1,9 +1,11 @@
 [user]
 	name = Sasi
 	email = sasi88@gmail.com
+{{- if ne .chezmoi.os "windows" }}
 [credential "https://github.com"]
 	helper = 
 	helper = !/usr/bin/gh auth git-credential
 [credential "https://gist.github.com"]
 	helper = 
 	helper = !/usr/bin/gh auth git-credential
+{{- end }}

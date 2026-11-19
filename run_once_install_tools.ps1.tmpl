@@ -1,0 +1,172 @@
+{{- if eq .chezmoi.os "windows" -}}
+$ErrorActionPreference = 'Stop'
+
+# Enable TLS 1.2 for Windows PowerShell 5.1 GitHub API / PSGallery downloads
+[Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
+
+$LocalBin = Join-Path $HOME '.local\bin'
+New-Item -ItemType Directory -Force -Path $LocalBin | Out-Null
+
+# Persist ~/.local/bin in User PATH if missing
+$userPath = [Environment]::GetEnvironmentVariable('Path', 'User')
+$userParts = if ($userPath) { $userPath -split ';' | Where-Object { $_ -ne '' } } else { @() }
+if ($userParts -notcontains $LocalBin) {
+    $newUserPath = (@($LocalBin) + $userParts) -join ';'
+    [Environment]::SetEnvironmentVariable('Path', $newUserPath, 'User')
+}
+
+function Sync-SessionPath {
+    $parts = @()
+    $parts += $LocalBin
+    if ($env:LOCALAPPDATA) {
+        $parts += (Join-Path $env:LOCALAPPDATA 'Microsoft\WinGet\Links')
+    }
+    if ($env:ProgramFiles) {
+        $parts += (Join-Path $env:ProgramFiles 'starship\bin')
+    }
+    $machinePath = [Environment]::GetEnvironmentVariable('Path', 'Machine')
+    $curUserPath = [Environment]::GetEnvironmentVariable('Path', 'User')
+    if ($machinePath) { $parts += ($machinePath -split ';') }
+    if ($curUserPath) { $parts += ($curUserPath -split ';') }
+    if ($env:PATH)    { $parts += ($env:PATH -split ';') }
+    $seen = New-Object 'System.Collections.Generic.HashSet[string]' ([System.StringComparer]::OrdinalIgnoreCase)
+    $clean = foreach ($p in $parts) {
+        if ($p -and $seen.Add($p.TrimEnd('\'))) { $p }
+    }
+    $env:PATH = $clean -join ';'
+}
+
+Sync-SessionPath
+
+$rawArch = if ($env:PROCESSOR_ARCHITEW6432) { $env:PROCESSOR_ARCHITEW6432 } else { $env:PROCESSOR_ARCHITECTURE }
+$isArm64 = ($rawArch -eq 'ARM64')
+$rustArch = if ($isArm64) { 'aarch64' } else { 'x86_64' }
+$goArch   = if ($isArm64) { 'arm64' }   else { 'amd64' }
+
+$hasWinget = [bool](Get-Command winget -ErrorAction SilentlyContinue)
+
+function Test-ToolInstalled {
+    param([Parameter(Mandatory)][string]$ExeName)
+    if (Get-Command $ExeName -ErrorAction SilentlyContinue) { return $true }
+    if (Test-Path (Join-Path $LocalBin "$ExeName.exe")) { return $true }
+    return $false
+}
+
+function Install-GitHubZip {
+    param(
+        [Parameter(Mandatory)][string]$Repo,
+        [Parameter(Mandatory)][string]$AssetRegex,
+        [Parameter(Mandatory)][string]$ExeName
+    )
+    $headers = @{ 'User-Agent' = 'bigsasi-dotfiles-bootstrap' }
+    $release = Invoke-RestMethod -Uri "https://api.github.com/repos/$Repo/releases/latest" -Headers $headers
+    $asset = $release.assets | Where-Object { $_.name -match $AssetRegex } | Select-Object -First 1
+    if (-not $asset) {
+        throw "No matching Windows release asset found for $Repo ($AssetRegex)"
+    }
+    $tmpDir = Join-Path ([System.IO.Path]::GetTempPath()) ("chezmoi-" + [guid]::NewGuid().ToString('N'))
+    New-Item -ItemType Directory -Force -Path $tmpDir | Out-Null
+    try {
+        $zipPath = Join-Path $tmpDir $asset.name
+        Invoke-WebRequest -Uri $asset.browser_download_url -OutFile $zipPath -Headers $headers -UseBasicParsing
+        $extractDir = Join-Path $tmpDir 'extracted'
+        Expand-Archive -Path $zipPath -DestinationPath $extractDir -Force
+        $exeFile = Get-ChildItem -Path $extractDir -Filter "$ExeName.exe" -Recurse | Select-Object -First 1
+        if (-not $exeFile) {
+            throw "Could not find $ExeName.exe inside $($asset.name)"
+        }
+        Copy-Item -Path $exeFile.FullName -Destination (Join-Path $LocalBin "$ExeName.exe") -Force
+    } finally {
+        Remove-Item -Path $tmpDir -Recurse -Force -ErrorAction SilentlyContinue
+    }
+}
+
+function Install-CliTool {
+    param(
+        [Parameter(Mandatory)][string]$Name,
+        [Parameter(Mandatory)][string]$ExeName,
+        [Parameter(Mandatory)][string]$WingetId,
+        [Parameter(Mandatory)][string]$Repo,
+        [Parameter(Mandatory)][string]$AssetRegex
+    )
+    if (Test-ToolInstalled -ExeName $ExeName) {
+        return
+    }
+    Write-Host "Installing $Name..."
+    if ($hasWinget) {
+        try {
+            & winget install --id $WingetId --exact --accept-source-agreements --accept-package-agreements --silent | Out-Host
+            Sync-SessionPath
+        } catch {
+            Write-Warning "winget install failed for $WingetId; falling back to GitHub Release..."
+        }
+    }
+    if (-not (Test-ToolInstalled -ExeName $ExeName)) {
+        try {
+            Install-GitHubZip -Repo $Repo -AssetRegex $AssetRegex -ExeName $ExeName
+            Sync-SessionPath
+        } catch {
+            Write-Warning "Failed to install ${Name}: $_"
+        }
+    }
+}
+
+$tools = @(
+    @{ Name = 'starship'; ExeName = 'starship'; WingetId = 'Starship.Starship';        Repo = 'starship/starship';   AssetRegex = "^starship-$rustArch-pc-windows-msvc\.zip$" },
+    @{ Name = 'fzf';      ExeName = 'fzf';      WingetId = 'junegunn.fzf';             Repo = 'junegunn/fzf';        AssetRegex = "^fzf-.*-windows_$goArch\.zip$" },
+    @{ Name = 'zoxide';   ExeName = 'zoxide';   WingetId = 'ajeetdsouza.zoxide';       Repo = 'ajeetdsouza/zoxide';  AssetRegex = "^zoxide-.*-$rustArch-pc-windows-msvc\.zip$" },
+    @{ Name = 'eza';      ExeName = 'eza';      WingetId = 'eza-community.eza';        Repo = 'eza-community/eza';   AssetRegex = '^eza\.exe_x86_64-pc-windows-gnu\.zip$' },
+    @{ Name = 'bat';      ExeName = 'bat';      WingetId = 'sharkdp.bat';              Repo = 'sharkdp/bat';         AssetRegex = "^bat-v.*-$rustArch-pc-windows-msvc\.zip$" },
+    @{ Name = 'fd';       ExeName = 'fd';       WingetId = 'sharkdp.fd';               Repo = 'sharkdp/fd';          AssetRegex = "^fd-v.*-$rustArch-pc-windows-msvc\.zip$" },
+    @{ Name = 'ripgrep';  ExeName = 'rg';       WingetId = 'BurntSushi.ripgrep.MSVC';  Repo = 'BurntSushi/ripgrep';  AssetRegex = "^ripgrep-.*-$rustArch-pc-windows-msvc\.zip$" }
+)
+
+foreach ($t in $tools) {
+    Install-CliTool @t
+}
+
+# Install/upgrade PowerShell modules for inline history predictions (PSReadLine >= 2.2) & fzf bindings (PSFzf)
+$psrl = Get-Module -ListAvailable -Name PSReadLine | Sort-Object Version -Descending | Select-Object -First 1
+$needPsrl  = (-not $psrl) -or ($psrl.Version -lt [version]'2.2.0')
+$needPsFzf = -not (Get-Module -ListAvailable -Name PSFzf)
+
+if ($needPsrl -or $needPsFzf) {
+    try {
+        if (-not (Get-PackageProvider -Name NuGet -ErrorAction SilentlyContinue)) {
+            Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Scope CurrentUser -Force | Out-Null
+        }
+        if ($needPsrl) {
+            Write-Host 'Installing PSReadLine (>= 2.2.0) for inline history autosuggestions...'
+            Install-Module -Name PSReadLine -Repository PSGallery -Scope CurrentUser -Force -AllowClobber -SkipPublisherCheck
+        }
+        if ($needPsFzf) {
+            Write-Host 'Installing PSFzf module...'
+            Install-Module -Name PSFzf -Repository PSGallery -Scope CurrentUser -Force -AllowClobber
+        }
+    } catch {
+        Write-Warning "Failed to install PowerShell modules (PSReadLine/PSFzf): $_"
+    }
+}
+
+# If Windows Documents is redirected (e.g., OneDrive Known Folder Move), chain-load the chezmoi profile
+$myDocs = [Environment]::GetFolderPath('MyDocuments')
+$defaultDocs = Join-Path $HOME 'Documents'
+if ($myDocs -and ($myDocs.TrimEnd('\') -ne $defaultDocs.TrimEnd('\'))) {
+    foreach ($shellDir in @('PowerShell', 'WindowsPowerShell')) {
+        $managedProfile = Join-Path $defaultDocs "$shellDir\Microsoft.PowerShell_profile.ps1"
+        $activeProfile  = Join-Path $myDocs "$shellDir\Microsoft.PowerShell_profile.ps1"
+        $sourceLine     = ". `"$managedProfile`""
+        if (Test-Path $managedProfile) {
+            $activeDir = Split-Path -Parent $activeProfile
+            if (-not (Test-Path $activeDir)) {
+                New-Item -ItemType Directory -Force -Path $activeDir | Out-Null
+            }
+            $existing = if (Test-Path $activeProfile) { Get-Content -Path $activeProfile -Raw -ErrorAction SilentlyContinue } else { '' }
+            if ($existing -notlike "*$managedProfile*") {
+                Add-Content -Path $activeProfile -Value "`r`n# Managed by chezmoi`r`n$sourceLine" -Encoding UTF8
+                Write-Host "Linked redirected Documents profile: $activeProfile -> $managedProfile"
+            }
+        }
+    }
+}
+{{- end -}}

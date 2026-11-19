@@ -5,6 +5,19 @@ palette = "nord"
 add_newline = false
 command_timeout = 1000
 
+{{- if eq .chezmoi.os "windows" }}
+# PowerShell does not render right_format natively (and PSReadLine inline predictions overwrite right text)
+format = """
+$username\
+$hostname \
+$directory\
+$git_branch\
+$git_state\
+$git_status\
+$status\
+$cmd_duration\
+$character"""
+{{- else }}
 format = """
 $directory\
 $git_branch\
@@ -18,6 +31,7 @@ $cmd_duration\
 $jobs\
 $username\
 $hostname"""
+{{- end }}
 
 [palettes.nord]
 polar_night_1 = "#2E3440"

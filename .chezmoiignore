@@ -2,3 +2,17 @@ README.md
 .git
 .gitignore
 .chezmoiroot
+{{- if eq .chezmoi.os "windows" }}
+install_tools.sh
+.bash_aliases
+.bash_profile
+.bashrc
+.blerc
+.exports
+.inputrc
+.vimrc
+{{- else }}
+install_tools.ps1
+Documents/
+Documents/**
+{{- end }}

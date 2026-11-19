@@ -1,3 +1,4 @@
+{{- if ne .chezmoi.os "windows" -}}
 #!/usr/bin/env bash
 set -euo pipefail
 
@@ -144,3 +145,4 @@ if [ ! -d "$HOME/.vim/bundle/Vundle.vim" ]; then
     git clone --depth=1 https://github.com/VundleVim/Vundle.vim.git "$HOME/.vim/bundle/Vundle.vim"
     vim -E -s -u "$HOME/.vimrc" +PluginInstall +qall 2>/dev/null || true
 fi
+{{- end -}}
