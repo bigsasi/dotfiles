@@ -26,3 +26,13 @@ if command -v fzf >/dev/null 2>&1; then
     ble-import -d integration/fzf-completion
     ble-import -d integration/fzf-key-bindings
 fi
+
+# 6. Clean multiline pasting (no "-- MULTILINE --" banner, Enter executes directly)
+function blerc/emacs-load-hook {
+    bleopt prompt_emacs_mode_indicator=
+    ble-bind -f 'C-m' accept-line
+    ble-bind -f 'RET' accept-line
+    return 0
+}
+blehook/eval-after-load keymap_emacs blerc/emacs-load-hook
+
