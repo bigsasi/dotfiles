@@ -10,7 +10,17 @@ ARCH="$(uname -m)"
 # 1. Install Starship prompt if not present
 if ! command -v starship >/dev/null 2>&1; then
     echo "Installing Starship prompt..."
-    curl -sS https://starship.rs/install.sh | sh -s -- -b "$HOME/.local/bin" -y
+    if [ "$OS" = "darwin" ] && command -v brew >/dev/null 2>&1; then
+        brew install starship
+    else
+        STARSHIP_ARCH="x86_64"
+        [ "$ARCH" = "aarch64" ] || [ "$ARCH" = "arm64" ] && STARSHIP_ARCH="aarch64"
+        STARSHIP_TARGET="${STARSHIP_ARCH}-unknown-linux-musl"
+        [ "$OS" = "darwin" ] && STARSHIP_TARGET="${STARSHIP_ARCH}-apple-darwin"
+        STARSHIP_URL="https://github.com/starship/starship/releases/latest/download/starship-${STARSHIP_TARGET}.tar.gz"
+        curl -fsSL "$STARSHIP_URL" | tar -xzf - -C "$HOME/.local/bin" starship
+        chmod +x "$HOME/.local/bin/starship"
+    fi
 fi
 
 # 1b. Install ble.sh (Lightweight inline history autosuggestions) if not present
