@@ -12,9 +12,12 @@ bleopt highlight_syntax=
 bleopt highlight_filename=
 bleopt highlight_variable=
 
-# 3. Clean terminal output (no "[ble: exit 1]", "[ble: elapsed ...]", "[ble: EOF]", or bells)
+# 3. Clean terminal output (no "[ble: exit]", "[ble: reload]", "[ble: EOF]", or bells)
+bleopt exec_exit_mark=
 bleopt exec_errexit_mark=
 bleopt exec_elapsed_mark=
+bleopt edit_marker=
+bleopt edit_marker_error=
 bleopt prompt_eol_mark=''
 bleopt edit_bell=
 

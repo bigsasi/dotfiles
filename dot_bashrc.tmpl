@@ -5,6 +5,7 @@ case $- in
     *i*) ;;
       *) return;;
 esac
+__BASHRC_LOADED=1
 
 # 2. PATH & Platform Environment (set early so ble.sh & tools find ~/.local/bin)
 export PATH="$HOME/.local/bin:$HOME/bin:$PATH"
@@ -18,9 +19,11 @@ export PATH="$HOME/.local/bin:$HOME/bin:$PATH"
 {{- end }}
 
 # 3. Initialize ble.sh (lightweight inline history autosuggestions via ~/.blerc)
-if (( BASH_VERSINFO[0] >= 4 )) && [ -f "$HOME/.local/share/blesh/ble.sh" ]; then
+__ble_should_attach=0
+if (( BASH_VERSINFO[0] >= 4 )) && [[ ! ${BLE_VERSION-} ]] && [ -f "$HOME/.local/share/blesh/ble.sh" ]; then
     [ -z "${USER:-}" ] && export USER="$(id -un)"
     source -- "$HOME/.local/share/blesh/ble.sh" --noattach
+    __ble_should_attach=1
 fi
 
 # 4. History Settings (large, deduplicated, checkpointed every 5m & on exit)
@@ -206,6 +209,7 @@ if command -v starship >/dev/null 2>&1; then
 fi
 
 # 12. Attach ble.sh at the very end
-if [[ ${BLE_VERSION-} ]]; then
+if (( __ble_should_attach )) && [[ ${BLE_VERSION-} ]]; then
     ble-attach
 fi
+unset __ble_should_attach

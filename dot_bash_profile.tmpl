@@ -4,6 +4,6 @@ if [ -f "$HOME/.profile" ]; then
     . "$HOME/.profile"
 fi
 
-if [ -f "$HOME/.bashrc" ]; then
+if [ -z "${__BASHRC_LOADED-}" ] && [ -f "$HOME/.bashrc" ]; then
     . "$HOME/.bashrc"
 fi
